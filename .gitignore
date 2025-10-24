@@ -205,3 +205,23 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Ansible
+# Ignore Ansible generated temporary files, vault keys, retry files, caches and local state
+*.retry
+# Ansible temporary runtime dir
+.ansible/
+.ansible/tmp/
+# Collections cache (often downloaded on-demand)
+.ansible/collections/
+# Vault related
+*.vault
+*.vault_pass
+vault_password.txt
+# Fact caches and caches used by Ansible tools
+.ansible_fact_cache/
+.ansible_facts/
+.cache/ansible/
+# ansible-lint cache
+.ansible-lint/
+

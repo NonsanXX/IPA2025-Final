@@ -1,0 +1,64 @@
+---
+- name: AUTOMATIC BACKUP OF RUNNING-CONFIG
+  hosts: ExamRouter
+  gather_facts: false
+  connection: ansible.netcommon.network_cli
+
+  vars:
+    ansible_network_os: cisco.ios.ios
+    student_id: "66070305"
+    ansible_command_timeout: 60
+    ansible_connect_timeout: 60
+
+  tasks:
+    - name: Check connectivity (show clock)
+      cisco.ios.ios_command:
+        commands:
+          - show clock
+      register: clock_output
+      retries: 3
+      delay: 5
+      until: clock_output is succeeded
+
+    - name: Get hostname
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | include ^hostname
+      register: host_output
+      retries: 3
+      delay: 5
+      until: host_output is succeeded
+
+    - name: Extract hostname
+      ansible.builtin.set_fact:
+        router_name: "{{ (host_output.stdout[0] | regex_replace('^hostname\\s+', '')).strip() }}"
+
+    - name: Get running-config
+      cisco.ios.ios_command:
+        commands:
+          - show running-config
+      register: config_output
+      retries: 3
+      delay: 5
+      until: config_output is succeeded
+
+    - name: Ensure local backups folder exists
+      ansible.builtin.file:
+        path: backups
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+
+    - name: Save running-config to file
+      ansible.builtin.copy:
+        content: "{{ config_output.stdout[0] }}"
+        dest: "backups/show_run_{{ student_id }}_{{ router_name }}.txt"
+        mode: '0644'
+      delegate_to: localhost
+
+    - name: Show result summary
+      ansible.builtin.debug:
+        msg:
+          - "Saved file: backups/show_run_{{ student_id }}_{{ router_name }}.txt"
+          - "Clock: {{ clock_output.stdout[0] | default('n/a') }}"
