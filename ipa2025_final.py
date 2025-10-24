@@ -158,9 +158,11 @@ while True:
             
             elif command == "motd":
                 if motd_message:
+                    # Set MOTD using Ansible
                     responseMessage = ansible_final.motd(ip, motd_message)
                 else:
-                    responseMessage = "Error: No MOTD message specified"
+                    # Read MOTD using Netmiko
+                    responseMessage = netmiko_final.read_motd(ip)
             
             # --- Method-based command execution (require restconf or netconf) ---
             elif method is None:
