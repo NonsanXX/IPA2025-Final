@@ -1,6 +1,9 @@
+[routers]
+ExamRouter
+
 [routers:vars]
+ansible_host={{ target_ip }}
 ansible_user=admin
 ansible_password=cisco
-
 ansible_network_cli_ssh_type=paramiko
 ansible_ssh_common_args='-o KexAlgorithms=diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa'

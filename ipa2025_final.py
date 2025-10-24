@@ -154,10 +154,11 @@ while True:
         # https://developer.webex.com/docs/basics for more detail
         
 
-        if command == "showrun" and responseMessage == "ok":
+        if command == "showrun" and responseMessage.get("status") == "ok":
 
-            filepath = "backups/show_run_66070305_R1-Exam.txt"
-            filename = "show_run_66070305_R1-Exam.txt"
+            hostname = str(responseMessage.get('hostname')).strip('"').strip()
+            filepath = f"backups/show_run_66070305_{hostname}.txt"
+            filename = f"show_run_66070305_{hostname}.txt"
             fileobject = open(filepath, "rb")
             filetype = "text/plain"
             postData = {

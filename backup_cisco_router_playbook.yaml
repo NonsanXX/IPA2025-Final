@@ -62,3 +62,5 @@
         msg:
           - "Saved file: backups/show_run_{{ student_id }}_{{ router_name }}.txt"
           - "Clock: {{ clock_output.stdout[0] | default('n/a') }}"
+          - "Hostname: {{ router_name }}"
+          
