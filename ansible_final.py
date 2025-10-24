@@ -2,7 +2,7 @@ import subprocess
 import os
 import time
 
-def showrun():
+def showrun(ip: str):
     # read https://www.datacamp.com/tutorial/python-subprocess to learn more about subprocess
     max_retries = 3
     retry_delay = 5  # seconds between retries
@@ -10,7 +10,7 @@ def showrun():
     for attempt in range(1, max_retries + 1):
         try:
             print(f'Attempt {attempt}/{max_retries}: Running Ansible playbook...')
-            command = ['ansible-playbook', '-i', 'hosts', 'backup_cisco_router_playbook.yaml']
+            command = ['ansible-playbook', '-i', 'hosts', 'backup_cisco_router_playbook.yaml', '--extra-vars', f"ExamRouter ansible_host={ip}"]
             result = subprocess.run(command, capture_output=True, text=True, timeout=180)
             result_stdout = result.stdout
             result_stderr = result.stderr

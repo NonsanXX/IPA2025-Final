@@ -13,6 +13,7 @@ import os
 import restconf_final, netmiko_final, ansible_final
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
@@ -92,33 +93,48 @@ while True:
     #  e.g.  "/66070123 create"
     if message.startswith("/66070305"):
 
-        # extract the command
-        try:
-            command = message.split(" ")[1]
-            print(command)
-        except IndexError:
-            command = None
-            print("No command found.")
+        # parse message tokens
+        parts = message.split()
+        ip = None
+        command = None
+        print(parts)
+
+        # Expect messages of the form: /66070305 <ip> <command>
+        if len(parts) < 3:
+            # No IP specified
+            if not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", parts[1]):
+                responseMessage = "Error: No IP specified"
+                print("No IP specified in message")
+            else:
+                pass
+        else:
+            ip = parts[1]
+            command = parts[2]
+            print("IP: {}, Command: {}".format(ip, command))
 
         # 5. Complete the logic for each command
 
         try:
-            if command == "create":
-                responseMessage = restconf_final.create()
-            elif command == "delete":
-                responseMessage = restconf_final.delete()
-            elif command == "enable":
-                responseMessage = restconf_final.enable()
-            elif command == "disable":
-                responseMessage = restconf_final.disable()
-            elif command == "status":
-                responseMessage = restconf_final.status()
-            elif command == "gigabit_status":
-                responseMessage = netmiko_final.gigabit_status()
-            elif command == "showrun":
-                responseMessage = ansible_final.showrun()
+            # If responseMessage already set (e.g., missing IP), skip command execution
+            if 'responseMessage' in locals() and responseMessage.startswith("Error: No IP"):
+                pass
             else:
-                responseMessage = "Error: No command or unknown command"
+                if command == "create":
+                    responseMessage = restconf_final.create(ip)
+                elif command == "delete":
+                    responseMessage = restconf_final.delete(ip)
+                elif command == "enable":
+                    responseMessage = restconf_final.enable(ip)
+                elif command == "disable":
+                    responseMessage = restconf_final.disable(ip)
+                elif command == "status":
+                    responseMessage = restconf_final.status(ip)
+                elif command == "gigabit_status":
+                    responseMessage = netmiko_final.gigabit_status(ip)
+                elif command == "showrun":
+                    responseMessage = ansible_final.showrun(ip)
+                else:
+                    responseMessage = "Error: No command or unknown command"
         except Exception as e:
             print(f"Error executing command '{command}': {e}")
             responseMessage = f"Error: Failed to execute command '{command}'"
