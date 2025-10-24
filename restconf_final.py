@@ -48,9 +48,9 @@ def create(ip: str):
     if 200 <= resp.status_code <= 299:
         print("STATUS OK: {}".format(resp.status_code))
         if resp.status_code == 204:
-            return "Cannot create: Interface loopback 66070305"
+            return "Cannot create: Interface loopback 66070305 (checked by Restconf)"
         elif resp.status_code == 201:
-            return "Interface loopback 66070305 is created successfully"
+            return "Interface loopback 66070305 is created successfully using Restconf"
 
     else:
         try:
@@ -66,10 +66,10 @@ def delete(ip: str):
 
     if 200 <= resp.status_code <= 299:
         print("STATUS OK: {}".format(resp.status_code))
-        return "Interface loopback 66070305 is deleted successfully"
+        return "Interface loopback 66070305 is deleted successfully using Restconf"
     else:
         print("Error. Status Code: {}".format(resp.status_code))
-        return "Cannot delete: Interface loopback 66070305"
+        return "Cannot delete: Interface loopback 66070305 (checked by Restconf)"
 
 
 def enable(ip: str):
@@ -86,10 +86,10 @@ def enable(ip: str):
 
     if 200 <= resp.status_code <= 299:
         print("STATUS OK: {}".format(resp.status_code))
-        return "Interface loopback 66070305 is enabled successfully"
+        return "Interface loopback 66070305 is enabled successfully using Restconf"
     else:
         print("Error. Status Code: {}".format(resp.status_code))
-        return "Cannot enable: Interface loopback 66070305"
+        return "Cannot enable: Interface loopback 66070305 (checked by Restconf)"
 
 
 def disable(ip: str):
@@ -106,10 +106,10 @@ def disable(ip: str):
 
     if 200 <= resp.status_code <= 299:
         print("STATUS OK: {}".format(resp.status_code))
-        return "Interface loopback 66070305 is disabled successfully"
+        return "Interface loopback 66070305 is disabled successfully using Restconf"
     else:
         print("Error. Status Code: {}".format(resp.status_code))
-        return "Cannot disable: Interface loopback 66070305"
+        return "Cannot disable: Interface loopback 66070305 (checked by Restconf)"
 
 
 def status(ip: str):
@@ -123,11 +123,11 @@ def status(ip: str):
         admin_status = response_json["ietf-interfaces:interface"]["admin-status"]
         oper_status = response_json["ietf-interfaces:interface"]["oper-status"]
         if admin_status == "up" and oper_status == "up":
-            return "Interface loopback 66070305 is enabled"
+            return "Interface loopback 66070305 is enabled (checked by Restconf)"
         elif admin_status == "down" and oper_status == "down":
-            return "Interface loopback 66070305 is disabled"
+            return "Interface loopback 66070305 is disabled (checked by Restconf)"
     elif resp.status_code == 404:
         print("STATUS NOT FOUND: {}".format(resp.status_code))
-        return "No Interface loopback 66070305"
+        return "No Interface loopback 66070305 (checked by Restconf)"
     else:
         print("Error. Status Code: {}".format(resp.status_code))

@@ -1,7 +1,7 @@
 #######################################################################################
 # Yourname: Phuriphat Arunphaisan
 # Your student ID: 66070305
-# Your GitHub Repo: https://github.com/NonsanXX/IPA2024-Final
+# Your GitHub Repo: https://github.com/NonsanXX/IPA2025-Final
 
 #######################################################################################
 # 1. Import libraries for API requests, JSON formatting, time, os, (restconf_final or netconf_final), netmiko_final, and ansible_final.
@@ -44,6 +44,7 @@ if not r.status_code == 200:
 json_data = r.json()
 roomTitle = json_data["title"]
 print("Room Title: " + roomTitle)
+method = None
 
 while True:
     # always add 1 second of delay to the loop to not go over a rate limit of API calls
@@ -99,26 +100,46 @@ while True:
         command = None
         print(parts)
 
-        # Expect messages of the form: /66070305 <ip> <command>
-        if len(parts) < 3:
-            # No IP specified
-            if not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", parts[1]):
-                responseMessage = "Error: No IP specified"
-                print("No IP specified in message")
-            else:
-                pass
-        else:
+        # Reset responseMessage for this loop
+        responseMessage = None 
+
+        # Case 1: Full command /66070305 <ip> <command>
+        if len(parts) >= 3:
             ip = parts[1]
             command = parts[2]
             print("IP: {}, Command: {}".format(ip, command))
+            # Validate IP format
+            if not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", ip):
+                responseMessage = f"Error: Invalid IP address '{ip}'"
+        
+        # Case 2: Partial command /66070305 <argument>
+        elif len(parts) == 2:
+            arg = parts[1]
+            # Check if it's a method-setting command
+            if arg in ["restconf", "netconf"]:
+                method = arg
+                responseMessage = f"Ok: {method.title()}"
+                print(f"Method set to: {method}")
+            # Check if it's an IP (missing a command)
+            elif not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", arg):
+                responseMessage = "Error: No IP specified"
+                print("No IP specified")
+            # Otherwise, it's a command (missing an IP)
+            else:
+                command = arg # ip remains None
 
         # 5. Complete the logic for each command
-
         try:
-            # If responseMessage already set (e.g., missing IP), skip command execution
-            if 'responseMessage' in locals() and responseMessage.startswith("Error: No IP"):
+            # If responseMessage was already set (e.g., "Ok: Restconf" or "Invalid IP"), skip command execution
+            if method is None:
+                print("No method selected.")
+                responseMessage = "Error: No method specified"
+            
+            elif responseMessage:
                 pass
-            else:
+            
+            # --- Method-based command execution ---
+            elif method == "restconf":
                 if command == "create":
                     responseMessage = restconf_final.create(ip)
                 elif command == "delete":
@@ -134,7 +155,29 @@ while True:
                 elif command == "showrun":
                     responseMessage = ansible_final.showrun(ip)
                 else:
-                    responseMessage = "Error: No command or unknown command"
+                    print("No command found.")
+                    responseMessage = "Error: No command found."
+            
+            elif method == "netconf":
+                if command == "create":
+                    responseMessage = netmiko_final.create(ip)
+                elif command == "delete":
+                    responseMessage = netmiko_final.delete(ip)
+                elif command == "enable":
+                    responseMessage = netmiko_final.enable(ip)
+                    responseMessage = netmiko_final.enable(ip)
+                elif command == "disable":
+                    responseMessage = netmiko_final.disable(ip)
+                elif command == "status":
+                    responseMessage = netmiko_final.status(ip)
+                elif command == "gigabit_status":
+                    responseMessage = netmiko_final.gigabit_status(ip)
+                elif command == "showrun":
+                    responseMessage = ansible_final.showrun(ip)
+                else:
+                    print("No command found.")
+                    responseMessage = "Error: No command found."
+
         except Exception as e:
             print(f"Error executing command '{command}': {e}")
             responseMessage = f"Error: Failed to execute command '{command}'"
@@ -153,27 +196,39 @@ while True:
         # Read Send a Message with Attachments Local File Attachments
         # https://developer.webex.com/docs/basics for more detail
         
-
-        if command == "showrun" and responseMessage.get("status") == "ok":
+        # Check if responseMessage is a dictionary (from ansible_final.showrun) and has status 'ok'
+        if command == "showrun" and isinstance(responseMessage, dict) and responseMessage.get("status") == "ok":
 
             hostname = str(responseMessage.get('hostname')).strip('"').strip()
             filepath = f"backups/show_run_66070305_{hostname}.txt"
             filename = f"show_run_66070305_{hostname}.txt"
-            fileobject = open(filepath, "rb")
-            filetype = "text/plain"
-            postData = {
-                "roomId": roomIdToGetMessages,
-                "text": "show running config",
-                "files": (filename, fileobject, filetype),
-            }
-            postData = MultipartEncoder(postData)
-            HTTPHeaders = {
-            "Authorization": "Bearer " + ACCESS_TOKEN,
-            "Content-Type": postData.content_type,
-            }
+            
+            try:
+                fileobject = open(filepath, "rb")
+                filetype = "text/plain"
+                postData = {
+                    "roomId": roomIdToGetMessages,
+                    "text": "show running config",
+                    "files": (filename, fileobject, filetype),
+                }
+                postData = MultipartEncoder(postData)
+                HTTPHeaders = {
+                    "Authorization": "Bearer " + ACCESS_TOKEN,
+                    "Content-Type": postData.content_type,
+                }
+            except FileNotFoundError:
+                print(f"Error: Backup file not found at {filepath}")
+                responseMessage = f"Error: Ansible OK, but backup file '{filename}' not found."
+                # Fall through to the 'else' block to send this new error as text
+            except Exception as e:
+                print(f"Error preparing file attachment: {e}")
+                responseMessage = f"Error: Could not attach file. {e}"
+                # Fall through to the 'else' block
+
         # other commands only send text, or no attached file.
-        else:
-            postData = {"roomId": roomIdToGetMessages, "text": responseMessage}
+        # This 'if' condition is crucial to avoid re-entering the block above
+        if not (command == "showrun" and isinstance(responseMessage, dict) and responseMessage.get("status") == "ok"):
+            postData = {"roomId": roomIdToGetMessages, "text": str(responseMessage)} # Ensure response is a string
             postData = json.dumps(postData)
 
             # the Webex Teams HTTP headers, including the Authoriztion and Content-Type
