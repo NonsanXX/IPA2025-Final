@@ -1,6 +1,7 @@
 import subprocess
 import time
 import re
+import json
 
 def showrun(ip: str):
     max_retries = 3
@@ -70,15 +71,16 @@ def motd(ip: str, motd_message: str):
         try:
             print(f'Attempt {attempt}/{max_retries}: Configuring MOTD on router with IP {ip}...')
             
-            # --- THIS IS THE MODIFIED SECTION ---
-            # Pass each variable as a separate --extra-vars argument
-            # This is safer than putting them all in one string.
+            # Use JSON format for extra-vars to properly handle spaces and special characters
+            extra_vars = json.dumps({
+                "target_ip": ip,
+                "motd_message": motd_message
+            })
+            
             command = ['ansible-playbook', 
                        '-i', 'hosts', 
                        'configure_motd_playbook.yaml', 
-                       '--extra-vars', f"target_ip={ip}",
-                       '--extra-vars', f"motd_message={motd_message}"]
-            # --- END OF MODIFICATION ---
+                       '--extra-vars', extra_vars]
             
             result = subprocess.run(command, capture_output=True, text=True, timeout=180)
             result_stdout = result.stdout
