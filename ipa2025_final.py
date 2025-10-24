@@ -10,7 +10,7 @@ import requests
 import json
 import time
 import os
-import restconf_final, netmiko_final, ansible_final
+import restconf_final, netconf_final, netmiko_final, ansible_final
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 from dotenv import load_dotenv
 import re
@@ -160,16 +160,16 @@ while True:
             
             elif method == "netconf":
                 if command == "create":
-                    responseMessage = netmiko_final.create(ip)
+                    responseMessage = netconf_final.create(ip)
                 elif command == "delete":
-                    responseMessage = netmiko_final.delete(ip)
+                    responseMessage = netconf_final.delete(ip)
                 elif command == "enable":
-                    responseMessage = netmiko_final.enable(ip)
-                    responseMessage = netmiko_final.enable(ip)
+                    responseMessage = netconf_final.enable(ip)
+                    responseMessage = netconf_final.enable(ip)
                 elif command == "disable":
-                    responseMessage = netmiko_final.disable(ip)
+                    responseMessage = netconf_final.disable(ip)
                 elif command == "status":
-                    responseMessage = netmiko_final.status(ip)
+                    responseMessage = netconf_final.status(ip)
                 elif command == "gigabit_status":
                     responseMessage = netmiko_final.gigabit_status(ip)
                 elif command == "showrun":
