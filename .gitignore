@@ -225,3 +225,4 @@ vault_password.txt
 # ansible-lint cache
 .ansible-lint/
 
+.vscode/
