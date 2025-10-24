@@ -60,3 +60,61 @@ def showrun(ip: str):
                 return f'Error: Ansible - {str(e)}'
     
     return 'Error: Ansible - All retries failed'
+
+
+def motd(ip: str, motd_message: str):
+    max_retries = 3
+    retry_delay = 5  # seconds between retries
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f'Attempt {attempt}/{max_retries}: Configuring MOTD on router with IP {ip}...')
+            
+            # --- THIS IS THE MODIFIED SECTION ---
+            # Pass each variable as a separate --extra-vars argument
+            # This is safer than putting them all in one string.
+            command = ['ansible-playbook', 
+                       '-i', 'hosts', 
+                       'configure_motd_playbook.yaml', 
+                       '--extra-vars', f"target_ip={ip}",
+                       '--extra-vars', f"motd_message={motd_message}"]
+            # --- END OF MODIFICATION ---
+            
+            result = subprocess.run(command, capture_output=True, text=True, timeout=180)
+            result_stdout = result.stdout
+            result_stderr = result.stderr
+            print(result_stdout)
+            
+            if 'failed=0' in result_stdout and 'unreachable=0' in result_stdout:
+                print('Ansible playbook executed successfully.')
+                return "Ok: success"
+            else:
+                print(f'Ansible playbook failed on attempt {attempt}.')
+                if result_stderr:
+                    print(f'Error output: {result_stderr}')
+                
+                if attempt < max_retries:
+                    print(f'Retrying in {retry_delay} seconds...')
+                    time.sleep(retry_delay)
+                else:
+                    return "Error: Ansible"
+            
+        except subprocess.TimeoutExpired:
+            print(f'Error: Ansible playbook execution timed out on attempt {attempt}.')
+            if attempt < max_retries:
+                print(f'Retrying in {retry_delay} seconds...')
+                time.sleep(retry_delay)
+            else:
+                return 'Error: Ansible - Timeout'
+        except FileNotFoundError:
+            print('Error: ansible-playbook command not found. Make sure Ansible is installed.')
+            return 'Error: Ansible - Not Found'
+        except Exception as e:
+            print(f'Error: An unexpected error occurred on attempt {attempt}: {str(e)}')
+            if attempt < max_retries:
+                print(f'Retrying in {retry_delay} seconds...')
+                time.sleep(retry_delay)
+            else:
+                return f'Error: Ansible - {str(e)}'
+    
+    return 'Error: Ansible - All retries failed'

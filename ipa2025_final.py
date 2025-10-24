@@ -102,16 +102,24 @@ while True:
         parts = message.split()
         ip = None
         command = None
+        motd_message = None
         print(parts)
 
         # Reset responseMessage for this loop
         responseMessage = None 
 
-        # Case 1: Full command /66070305 <ip> <command>
+        # Case 1: Full command /66070305 <ip> <command> [additional args for motd]
         if len(parts) >= 3:
             ip = parts[1]
             command = parts[2]
-            print("IP: {}, Command: {}".format(ip, command))
+            
+            # Special handling for motd command - capture all remaining text as the message
+            if command == "motd" and len(parts) > 3:
+                motd_message = " ".join(parts[3:])
+                print("IP: {}, Command: {}, MOTD: {}".format(ip, command, motd_message))
+            else:
+                print("IP: {}, Command: {}".format(ip, command))
+            
             # Validate IP format
             if not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", ip):
                 responseMessage = f"Error: Invalid IP address '{ip}'"
@@ -124,25 +132,41 @@ while True:
                 method = arg
                 responseMessage = f"Ok: {method.title()}"
                 print(f"Method set to: {method}")
-            # Check if it's an IP (missing a command)
+            # Check if it's NOT an IP (so it's a command without IP)
             elif not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", arg):
+                command = arg
                 responseMessage = "Error: No IP specified"
                 print("No IP specified")
-            # Otherwise, it's a command (missing an IP)
+            # Otherwise it's an IP without a command
             else:
-                command = arg # ip remains None
+                ip = arg
+                responseMessage = "Error: No command found."
+                print("No command specified")
 
         # 5. Complete the logic for each command
         try:
             # If responseMessage was already set (e.g., "Ok: Restconf" or "Invalid IP"), skip command execution
-            if method is None:
+            if responseMessage:
+                pass
+            
+            # --- Commands that don't require method (work independently) ---
+            elif command == "gigabit_status":
+                responseMessage = netmiko_final.gigabit_status(ip)
+            
+            elif command == "showrun":
+                responseMessage = ansible_final.showrun(ip)
+            
+            elif command == "motd":
+                if motd_message:
+                    responseMessage = ansible_final.motd(ip, motd_message)
+                else:
+                    responseMessage = "Error: No MOTD message specified"
+            
+            # --- Method-based command execution (require restconf or netconf) ---
+            elif method is None:
                 print("No method selected.")
                 responseMessage = "Error: No method specified"
             
-            elif responseMessage:
-                pass
-            
-            # --- Method-based command execution ---
             elif method == "restconf":
                 if command == "create":
                     responseMessage = restconf_final.create(ip)
@@ -154,10 +178,6 @@ while True:
                     responseMessage = restconf_final.disable(ip)
                 elif command == "status":
                     responseMessage = restconf_final.status(ip)
-                elif command == "gigabit_status":
-                    responseMessage = netmiko_final.gigabit_status(ip)
-                elif command == "showrun":
-                    responseMessage = ansible_final.showrun(ip)
                 else:
                     print("No command found.")
                     responseMessage = "Error: No command found."
@@ -169,15 +189,10 @@ while True:
                     responseMessage = netconf_final.delete(ip)
                 elif command == "enable":
                     responseMessage = netconf_final.enable(ip)
-                    responseMessage = netconf_final.enable(ip)
                 elif command == "disable":
                     responseMessage = netconf_final.disable(ip)
                 elif command == "status":
                     responseMessage = netconf_final.status(ip)
-                elif command == "gigabit_status":
-                    responseMessage = netmiko_final.gigabit_status(ip)
-                elif command == "showrun":
-                    responseMessage = ansible_final.showrun(ip)
                 else:
                     print("No command found.")
                     responseMessage = "Error: No command found."
